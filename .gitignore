@@ -1,0 +1,49 @@
+# ─── API Keys & Secrets ───────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+config.secret.*
+secrets.*
+
+# ─── Danh sách email thật (bảo vệ privacy) ───────────────────────────────────
+recipients.txt
+recipients_*.txt
+contacts.txt
+emails.txt
+list_*.txt
+
+# ─── File log tự động sinh ra ─────────────────────────────────────────────────
+email_log_*.txt
+*.log
+logs/
+
+# ─── File đính kèm nhạy cảm ──────────────────────────────────────────────────
+attachments/
+*.pdf
+*.docx
+*.xlsx
+
+# ─── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+
+# ─── Linux ────────────────────────────────────────────────────────────────────
+*~
+.nfs*
+
+# ─── Windows ──────────────────────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ─── Editor ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
