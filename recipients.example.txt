@@ -1,0 +1,3 @@
+# Name|Email|Company
+Nguyen Van A|nguyenvana@example.com|Company ABC
+Tran Thi B|tranthib@example.com|Startup XYZ
