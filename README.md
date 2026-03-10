@@ -41,6 +41,19 @@ Dry-run (không gửi thật):
 ./send_email.sh --dry-run
 ```
 
+Dùng template HTML ngoài:
+
+```bash
+./send_email.sh --template template.example.html
+```
+
+Placeholder hỗ trợ trong template:
+- `{{name}}`
+- `{{email}}`
+- `{{company}}`
+- `{{sender_name}}`
+- `{{year}}`
+
 Dùng env file custom:
 
 ```bash

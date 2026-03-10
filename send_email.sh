@@ -16,6 +16,7 @@ EMAIL_SUBJECT="${EMAIL_SUBJECT:-Thông báo quan trọng từ ${SENDER_NAME}}"
 DELAY_SECONDS="${DELAY_SECONDS:-1}"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 DRY_RUN=false
+TEMPLATE_FILE="${TEMPLATE_FILE:-}"
 
 LOG_FILE="email_log_$(date +%Y%m%d_%H%M%S).txt"
 
@@ -44,6 +45,7 @@ Options:
   --retries N              Max retries per recipient (default: 2)
   --sender-email EMAIL     Sender email (verified on SendGrid)
   --sender-name NAME       Sender display name
+  --template FILE          HTML template file (supports placeholders)
   --dry-run                Do not send, only simulate/log
   -h, --help               Show help
 EOF
@@ -71,6 +73,7 @@ parse_args() {
       --retries) MAX_RETRIES="$2"; shift 2 ;;
       --sender-email) SENDER_EMAIL="$2"; shift 2 ;;
       --sender-name) SENDER_NAME="$2"; shift 2 ;;
+      --template) TEMPLATE_FILE="$2"; shift 2 ;;
       --dry-run) DRY_RUN=true; shift ;;
       -h|--help) usage; exit 0 ;;
       *) fail "Unknown arg: $1"; usage; exit 1 ;;
@@ -91,6 +94,23 @@ is_valid_email() {
 build_html_body() {
   local name="$1" email="$2" company="$3" year
   year=$(date +%Y)
+
+  if [[ -n "$TEMPLATE_FILE" ]]; then
+    if [[ ! -f "$TEMPLATE_FILE" ]]; then
+      fail "Template file not found: $TEMPLATE_FILE"
+      return 1
+    fi
+    local tpl
+    tpl="$(cat "$TEMPLATE_FILE")"
+    tpl="${tpl//\{\{name\}\}/$name}"
+    tpl="${tpl//\{\{email\}\}/$email}"
+    tpl="${tpl//\{\{company\}\}/$company}"
+    tpl="${tpl//\{\{sender_name\}\}/$SENDER_NAME}"
+    tpl="${tpl//\{\{year\}\}/$year}"
+    printf '%s' "$tpl"
+    return 0
+  fi
+
   cat <<HTML
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
@@ -182,6 +202,7 @@ main() {
   info "Recipients: ${RECIPIENTS_FILE}"
   info "Subject: ${EMAIL_SUBJECT}"
   info "Delay: ${DELAY_SECONDS}s | Retries: ${MAX_RETRIES} | Dry-run: ${DRY_RUN}"
+  [[ -n "$TEMPLATE_FILE" ]] && info "Template: ${TEMPLATE_FILE}"
 
   local total=0 success=0 failed=0 skipped=0
   local start_ts end_ts
