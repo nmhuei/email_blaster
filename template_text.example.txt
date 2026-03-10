@@ -1,0 +1,10 @@
+Xin chào {{name}},
+
+Mình là {{sender_name}}.
+Thông tin công ty của bạn: {{company}}.
+
+Đây là bản text fallback để tăng deliverability.
+Nếu bạn thấy email này ở dạng text, hệ thống vẫn hoạt động bình thường.
+
+Email nhận: {{email}}
+© {{year}} {{sender_name}}

@@ -17,6 +17,7 @@ DELAY_SECONDS="${DELAY_SECONDS:-1}"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 DRY_RUN=false
 TEMPLATE_FILE="${TEMPLATE_FILE:-}"
+TEXT_TEMPLATE_FILE="${TEXT_TEMPLATE_FILE:-}"
 
 LOG_FILE="email_log_$(date +%Y%m%d_%H%M%S).txt"
 
@@ -46,6 +47,7 @@ Options:
   --sender-email EMAIL     Sender email (verified on SendGrid)
   --sender-name NAME       Sender display name
   --template FILE          HTML template file (supports placeholders)
+  --text-template FILE     Plain text template fallback (supports placeholders)
   --dry-run                Do not send, only simulate/log
   -h, --help               Show help
 EOF
@@ -74,6 +76,7 @@ parse_args() {
       --sender-email) SENDER_EMAIL="$2"; shift 2 ;;
       --sender-name) SENDER_NAME="$2"; shift 2 ;;
       --template) TEMPLATE_FILE="$2"; shift 2 ;;
+      --text-template) TEXT_TEMPLATE_FILE="$2"; shift 2 ;;
       --dry-run) DRY_RUN=true; shift ;;
       -h|--help) usage; exit 0 ;;
       *) fail "Unknown arg: $1"; usage; exit 1 ;;
@@ -125,6 +128,38 @@ build_html_body() {
 HTML
 }
 
+build_text_body() {
+  local name="$1" email="$2" company="$3" year
+  year=$(date +%Y)
+
+  if [[ -n "$TEXT_TEMPLATE_FILE" ]]; then
+    if [[ ! -f "$TEXT_TEMPLATE_FILE" ]]; then
+      fail "Text template file not found: $TEXT_TEMPLATE_FILE"
+      return 1
+    fi
+    local tpl
+    tpl="$(cat "$TEXT_TEMPLATE_FILE")"
+    tpl="${tpl//\{\{name\}\}/$name}"
+    tpl="${tpl//\{\{email\}\}/$email}"
+    tpl="${tpl//\{\{company\}\}/$company}"
+    tpl="${tpl//\{\{sender_name\}\}/$SENDER_NAME}"
+    tpl="${tpl//\{\{year\}\}/$year}"
+    printf '%s' "$tpl"
+    return 0
+  fi
+
+  cat <<TEXT
+Xin chào ${name},
+
+Đây là email từ ${SENDER_NAME}.
+Thông tin công ty: ${company}
+Nội dung chính của bạn viết ở đây...
+
+Gửi tới ${email}
+© ${year} ${SENDER_NAME}
+TEXT
+}
+
 build_attachment_json() {
   local file="$1"
   if [[ -z "$file" ]]; then echo "[]"; return; fi
@@ -144,16 +179,18 @@ send_email() {
     return 0
   fi
 
-  local html_body attachments html_escaped payload
+  local html_body text_body attachments html_escaped text_escaped payload
   html_body=$(build_html_body "$name" "$email" "$company")
+  text_body=$(build_text_body "$name" "$email" "$company")
   attachments=$(build_attachment_json "$ATTACHMENT_FILE")
   html_escaped=$(printf '%s' "$html_body" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
+  text_escaped=$(printf '%s' "$text_body" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
 
   payload="{
     \"personalizations\":[{\"to\":[{\"email\":\"${email}\",\"name\":\"${name}\"}]}],
     \"from\":{\"email\":\"${SENDER_EMAIL}\",\"name\":\"${SENDER_NAME}\"},
     \"subject\":\"${EMAIL_SUBJECT}\",
-    \"content\":[{\"type\":\"text/html\",\"value\":${html_escaped}}],
+    \"content\":[{\"type\":\"text/plain\",\"value\":${text_escaped}},{\"type\":\"text/html\",\"value\":${html_escaped}}],
     \"attachments\":${attachments}
   }"
 
@@ -202,7 +239,8 @@ main() {
   info "Recipients: ${RECIPIENTS_FILE}"
   info "Subject: ${EMAIL_SUBJECT}"
   info "Delay: ${DELAY_SECONDS}s | Retries: ${MAX_RETRIES} | Dry-run: ${DRY_RUN}"
-  [[ -n "$TEMPLATE_FILE" ]] && info "Template: ${TEMPLATE_FILE}"
+  [[ -n "$TEMPLATE_FILE" ]] && info "Template HTML: ${TEMPLATE_FILE}"
+  [[ -n "$TEXT_TEMPLATE_FILE" ]] && info "Template text: ${TEXT_TEMPLATE_FILE}"
 
   local total=0 success=0 failed=0 skipped=0
   local start_ts end_ts

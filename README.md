@@ -77,3 +77,12 @@ Name|email@example.com|Company
 - Không commit API key thật
 - Không commit danh sách email thật
 - Kiểm tra `.gitignore` trước khi push
+
+
+Text template fallback (tăng deliverability):
+
+```bash
+./send_email.sh --template template.example.html --text-template template_text.example.txt
+```
+
+Text template cũng hỗ trợ placeholders: `{{name}}`, `{{email}}`, `{{company}}`, `{{sender_name}}`, `{{year}}`.
